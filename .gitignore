@@ -1,0 +1,15 @@
+# Artefacts Python générés par les scripts des skills
+__pycache__/
+*.py[cod]
+.coverage
+
+# Fichiers temporaires Office
+~$*
+
+# Système
+Thumbs.db
+.DS_Store
+
+# Photographies sources : plusieurs mégaoctets chacune. Seules les sorties
+# optimisées de assets/img/ sont versionnées (voir README, section 5 bis).
+images/

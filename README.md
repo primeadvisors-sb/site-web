@@ -8,8 +8,20 @@ livrés sont ceux qui sont mis en ligne.
 
 ## 1. Mise en ligne
 
-Déposer le contenu du dossier à la racine de l'hébergement. Le site fonctionne
-sur n'importe quel hébergeur statique (Netlify, Vercel, GitHub Pages, OVH, cPanel…).
+```bash
+python assets/tools/build-site.py
+```
+
+Le script écrit un dossier `dist/`. **C'est le contenu de `dist/` qui se
+téléverse, jamais le dossier de travail.** Le site fonctionne sur n'importe
+quel hébergeur statique (Netlify, Vercel, GitHub Pages, OVH, cPanel…).
+
+Sur un hébergement statique, tout fichier déposé est téléchargeable par
+quiconque en devine l'adresse, même sans lien depuis une page. Le dossier de
+travail contient le document de profil de la compagnie, ce guide, les
+photographies d'origine et les scripts : rien de tout cela n'a à être servi.
+`dist/` ne reçoit que la liste blanche définie en haut du script, et les
+commentaires de code en sont retirés au passage.
 
 ```
 index.html              Accueil

@@ -1635,15 +1635,68 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 /* --------------------------------------------------------------------------
    16. MOUVEMENT
    -------------------------------------------------------------------------- */
+/* Course et durée de l'entrée. 14px sur 420ms passaient inaperçus : l'œil
+   ne lit un déplacement que s'il dure assez pour être suivi. */
+:root {
+  --dur-reveal: 820ms;
+  --ease-reveal: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --pas: 85ms;                /* décalage entre deux éléments d'une cascade */
+}
+
 .js .reveal {
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease);
+  transform: translate3d(0, 30px, 0);
+  transition: opacity var(--dur-reveal) var(--ease-reveal),
+              transform var(--dur-reveal) var(--ease-reveal);
+  /* --r est posé par le JS : rang de l'élément parmi ses frères révélables.
+     Aucune classe à placer à la main, donc aucune page oubliée. */
+  transition-delay: calc(var(--r, 0) * var(--pas));
 }
 .js .reveal.is-visible { opacity: 1; transform: none; }
-.js .reveal-delay-1 { transition-delay: 70ms; }
-.js .reveal-delay-2 { transition-delay: 140ms; }
-.js .reveal-delay-3 { transition-delay: 210ms; }
+
+/* Les deux colonnes d'un bloc scindé se rejoignent au lieu de monter
+   ensemble : le mouvement raconte l'assemblage de la page. */
+.js .split > .reveal:first-child  { transform: translate3d(-30px, 16px, 0); }
+.js .split > .reveal:last-child   { transform: translate3d(30px, 16px, 0); }
+@media (max-width: 900px) {
+  .js .split > .reveal:first-child,
+  .js .split > .reveal:last-child { transform: translate3d(0, 30px, 0); }
+}
+
+/* Un visuel ne monte pas : il se dévoile. Le cadre et son filet doré
+   restent en place, seule l'image se découvre de bas en haut, pendant que
+   le très léger zoom déjà en place se résorbe. */
+.js figure.media.reveal { opacity: 1; transform: none; }
+.js figure.media.reveal img {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 1.05s var(--ease-reveal), transform 1.6s var(--ease);
+  transition-delay: calc(var(--r, 0) * var(--pas));
+}
+.js figure.media.reveal.is-visible img { clip-path: inset(0 0 0 0); }
+
+/* Cascade interne : les puces d'une liste révélée arrivent une à une.
+   C'est là que se joue l'essentiel sur les pages denses, où le texte
+   s'empile en listes de même poids. --li est posé par le JS. */
+.js .reveal li {
+  opacity: 0;
+  transform: translate3d(0, 12px, 0);
+  transition: opacity 620ms var(--ease-reveal), transform 620ms var(--ease-reveal);
+  transition-delay: calc(var(--r, 0) * var(--pas) + var(--li, 0) * 65ms + 120ms);
+}
+.js .reveal.is-visible li { opacity: 1; transform: none; }
+
+/* Jauge de lecture, posée sur le filet inférieur de l'en-tête. Pas de
+   chrome supplémentaire : la bordure existante devient la mesure. */
+.site-header__progress {
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  will-change: transform;
+  pointer-events: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -1653,7 +1706,12 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  .js .reveal { opacity: 1; transform: none; }
+  .js .reveal,
+  .js .split > .reveal:first-child,
+  .js .split > .reveal:last-child,
+  .js .reveal li { opacity: 1; transform: none; }
+  .js figure.media.reveal img { clip-path: none; }
+  .site-header__progress { display: none; }
 }
 
 /* ==========================================================================
@@ -2245,4 +2303,102 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .js .media img { transform: none; }
   .js .reveal .eyebrow::before { transform: scaleX(1); }
   [data-parallax] { transform: none !important; }
+}
+
+/* --------------------------------------------------------------------------
+   19 bis. VIE AU SURVOL DES BLOCS DENSES
+
+   Les fiches, les valeurs et les listes numérotées ne réagissaient à rien.
+   Ce sont précisément les blocs qui occupent le plus de surface sur les
+   pages de fond, d'où l'impression d'une page figée une fois l'entrée
+   passée. Mouvements courts et sobres : on cherche la réponse, pas l'effet.
+   -------------------------------------------------------------------------- */
+
+/* Fiches solution ------------------------------------------------------- */
+.sheet {
+  transition: border-color var(--dur-slow) var(--ease),
+              box-shadow var(--dur-slow) var(--ease),
+              transform var(--dur-slow) var(--ease);
+}
+.sheet:hover {
+  border-color: var(--gold);
+  box-shadow: 0 18px 44px -28px rgba(10, 17, 56, 0.45);
+  transform: translateY(-3px);
+}
+.sheet__head { position: relative; }
+.sheet__head::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: -1px;
+  width: 100%; height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.7s var(--ease-reveal);
+}
+.sheet:hover .sheet__head::after { transform: scaleX(1); }
+.sheet__num { transition: transform var(--dur-slow) var(--ease); }
+.sheet:hover .sheet__num { transform: translateY(-2px) scale(1.08); }
+
+.sheet__cell { transition: background-color var(--dur) var(--ease); }
+.sheet__cell:hover { background: var(--gray-light); }
+.sheet__cell h3 { transition: color var(--dur) var(--ease); }
+.sheet__cell:hover h3 { color: var(--navy); }
+
+/* Valeurs de la page compagnie ------------------------------------------ */
+.value { transition: border-color var(--dur-slow) var(--ease); }
+.value:hover { border-top-color: var(--gold); }
+.value__num, .value h3 { transition: transform var(--dur-slow) var(--ease), color var(--dur) var(--ease); }
+.value:hover .value__num { transform: translateX(4px); color: var(--gold); }
+.value:hover h3 { transform: translateX(4px); }
+
+/* Listes à losange ------------------------------------------------------- */
+.diamond-list li { transition: color var(--dur) var(--ease); }
+.diamond-list li::before { transition: transform var(--dur-slow) var(--ease), width var(--dur-slow) var(--ease); }
+.diamond-list li:hover { color: var(--text-strong); }
+.section--invert .diamond-list li:hover { color: #fff; }
+.diamond-list li:hover::before { transform: rotate(135deg) scale(1.25); }
+
+/* Rangée « pourquoi » ---------------------------------------------------- */
+.reasons li { transition: border-color var(--dur-slow) var(--ease); }
+.reasons li:hover { border-bottom-color: var(--gold); }
+.reasons__num, .reasons__text { transition: transform var(--dur-slow) var(--ease); }
+.reasons li:hover .reasons__num { transform: translateX(5px); }
+.reasons li:hover .reasons__text { transform: translateX(3px); }
+
+/* Le fond d'un bandeau dérive au défilement : il doit donc déborder du
+   cadre, sans quoi la translation découvrirait un bord. */
+.page-hero__bg[data-parallax] { height: 118%; top: -9%; }
+@media (prefers-reduced-motion: reduce) {
+  .page-hero__bg[data-parallax] { height: 100%; top: 0; }
+}
+
+/* --------------------------------------------------------------------------
+   19 ter. RESPIRATIONS DANS LE TEXTE COURANT
+
+   La section « Qui sommes-nous » alignait quatre paragraphes d'affilée sans
+   rien à regarder. Un visuel et une citation détachée coupent le bloc en
+   trois, sans retirer ni ajouter un mot.
+   -------------------------------------------------------------------------- */
+.prose .lead {
+  font-size: var(--fs-lead);
+  line-height: 1.6;
+  color: var(--text-strong);
+}
+.prose__figure {
+  margin: var(--space-xl) 0;
+  aspect-ratio: 5 / 2;
+}
+.prose__quote {
+  margin: var(--space-xl) 0;
+  padding-left: var(--space-lg);
+  border-left: 2px solid var(--gold);
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 1.05rem + 0.8vw, 1.6rem);
+  line-height: 1.4;
+  color: var(--navy);
+}
+@media (max-width: 640px) {
+  .prose__figure { margin: var(--space-lg) 0; }
+  .prose__quote { padding-left: var(--space-md); margin: var(--space-lg) 0; }
 }

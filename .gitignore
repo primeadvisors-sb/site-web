@@ -13,3 +13,9 @@ Thumbs.db
 # Photographies sources : plusieurs mégaoctets chacune. Seules les sorties
 # optimisées de assets/img/ sont versionnées (voir README, section 5 bis).
 images/
+
+# Dossier de mise en ligne, reconstruit par assets/tools/build-site.py
+dist/
+
+# Notes de travail personnelles
+NOTES.md

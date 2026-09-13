@@ -410,6 +410,91 @@ def img_methode():
     save(add_grain(rgb, 2.5), "img-methode.webp", quality=82)
 
 
+# --------------------------------------------------------------------------
+# 4 sexies. Bandeau « réseau » de la page La compagnie
+#
+#    La section « Qui sommes-nous » était quatre paragraphes d'affilée sans
+#    rien à regarder, dont un de 91 mots. Ce visuel vient l'ouvrir en deux.
+#
+#    Le propos du passage est le réseau de cabinets partenaires : un foyer
+#    à Abidjan, des relais au loin, des liens entre eux. On ne place donc
+#    aucune carte et aucun nom, rien qui prétendrait désigner des cabinets
+#    réels ; seulement une constellation, dans le même vocabulaire que les
+#    ondes de rayonnement de l'accueil.
+#
+#    Tracé sur une toile doublée puis réduite : c'est le moyen le plus court
+#    d'obtenir un anticrénelage propre sur des traits d'un pixel.
+# --------------------------------------------------------------------------
+def img_reseau():
+    from PIL import ImageDraw
+
+    w, h = 1400, 560
+    rgb = linear_gradient(w, h, NAVY_700, NAVY_900, angle_x=0.22)
+
+    field = value_noise(w, h, octaves=4, seed=57, base=(6, 3))
+    a = contour_alpha(field, levels=18, width=0.9, aa=1.2)
+    rgb = rgb * (1 - a[..., None] * 0.11) + GOLD * a[..., None] * 0.11
+
+    # Foyer, puis relais répartis vers la droite : la lecture va du proche
+    # au lointain, comme le texte qu'elle accompagne.
+    foyer = (0.17, 0.62)
+    relais = [
+        (0.30, 0.30), (0.38, 0.72), (0.47, 0.44), (0.55, 0.19),
+        (0.58, 0.66), (0.67, 0.38), (0.72, 0.78), (0.79, 0.27),
+        (0.84, 0.58), (0.91, 0.41),
+    ]
+
+    S = 2                                    # facteur de suréchantillonnage
+    calque = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(calque)
+
+    def pt(p):
+        return (p[0] * w * S, p[1] * h * S)
+
+    # Liens : le foyer rejoint chaque relais, et les relais voisins se
+    # tiennent entre eux. Arcs échantillonnés plutôt que segments droits,
+    # une ligne parfaitement droite aurait l'air d'un schéma technique.
+    def arc(p, q, courbure, couleur, epaisseur):
+        (x0, y0), (x1, y1) = pt(p), pt(q)
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        nx, ny = -(y1 - y0), (x1 - x0)
+        norme = max(1e-6, (nx * nx + ny * ny) ** 0.5)
+        cx, cy = mx + nx / norme * courbure * S, my + ny / norme * courbure * S
+        pts = []
+        for i in range(41):
+            t = i / 40.0
+            u = 1 - t
+            pts.append((u * u * x0 + 2 * u * t * cx + t * t * x1,
+                        u * u * y0 + 2 * u * t * cy + t * t * y1))
+        d.line(pts, fill=couleur, width=epaisseur, joint="curve")
+
+    or_pale = (int(GOLD_400[0]), int(GOLD_400[1]), int(GOLD_400[2]))
+    for i, r in enumerate(relais):
+        arc(foyer, r, 26 + (i % 3) * 16, or_pale + (58,), 2 * S)
+    for i in range(len(relais) - 1):
+        if i % 2 == 0:
+            arc(relais[i], relais[i + 1], 18, or_pale + (30,), 1 * S)
+
+    def disque(p, rayon, couleur):
+        x, y = pt(p)
+        r = rayon * S
+        d.ellipse([x - r, y - r, x + r, y + r], fill=couleur)
+
+    for r in relais:
+        disque(r, 8, or_pale + (34,))
+        disque(r, 3.2, or_pale + (235,))
+    disque(foyer, 22, or_pale + (26,))
+    disque(foyer, 13, or_pale + (52,))
+    disque(foyer, 5.6, (255, 255, 255, 245))
+
+    calque = calque.resize((w, h), Image.LANCZOS)
+    ov = np.asarray(calque, float)
+    alpha = ov[..., 3:4] / 255.0
+    rgb = rgb * (1 - alpha) + ov[..., :3] * alpha
+
+    save(add_grain(rgb, 3.5), "img-reseau.webp", quality=82)
+
+
 def img_expertise():
     w, h = 1400, 790
 
@@ -597,6 +682,7 @@ if __name__ == "__main__":
     img_contact()
     img_solutions()
     img_partenaire()
+    img_reseau()
     img_methode()
     pattern_knight()
     expertise_photos()

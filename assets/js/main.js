@@ -108,6 +108,101 @@
   })();
 
   /* ---------------------------------------------------------------------
+     2 bis. Rang de cascade
+     Pose --r sur chaque bloc révélable selon sa place parmi ses frères, et
+     --li sur chaque puce selon sa place dans sa liste. La CSS en tire les
+     retards. Auparavant le décalage reposait sur des classes posées à la
+     main, absentes des deux pages les plus denses : tout y arrivait d'un
+     bloc. Doit tourner avant la révélation.
+     --------------------------------------------------------------------- */
+  (function cascade() {
+    if (reduceMotion) return;
+
+    var MAX_R = 5;      // au-delà, l'attente se verrait plus que l'effet
+    var MAX_LI = 7;
+    var blocs = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+    var parentsVus = [];
+
+    blocs.forEach(function (el) {
+      var parent = el.parentNode;
+      if (!parent || parentsVus.indexOf(parent) !== -1) return;
+      parentsVus.push(parent);
+
+      var freres = Array.prototype.filter.call(parent.children, function (enfant) {
+        return enfant.classList && enfant.classList.contains('reveal');
+      });
+      if (freres.length < 2) return;
+
+      /* Une cascade n'a de sens qu'entre blocs qui entrent dans le cadre
+         ensemble : les colonnes d'une grille, les deux moitiés d'un bloc
+         scindé. Quatre articles pleine largeur empilés arrivent l'un après
+         l'autre, à plusieurs écrans d'intervalle ; leur appliquer un retard
+         croissant ne produirait qu'une latence sur le dernier. On repart
+         donc de zéro dès que le voisin suivant est nettement plus bas. */
+      var SEUIL = 140;
+      var rang = 0;
+      var hautPrecedent = null;
+      freres.forEach(function (frere) {
+        var haut = frere.getBoundingClientRect().top;
+        if (hautPrecedent !== null) {
+          rang = (haut - hautPrecedent > SEUIL) ? 0 : rang + 1;
+        }
+        hautPrecedent = haut;
+        frere.style.setProperty('--r', String(Math.min(rang, MAX_R)));
+      });
+    });
+
+    function numeroter(liste) {
+      var rang = 0;
+      Array.prototype.forEach.call(liste.children, function (enfant) {
+        if (enfant.tagName !== 'LI') return;
+        enfant.style.setProperty('--li', String(Math.min(rang, MAX_LI)));
+        rang += 1;
+      });
+    }
+
+    blocs.forEach(function (el) {
+      /* La liste est tantôt à l'intérieur du bloc révélé, tantôt le bloc
+         révélé lui-même (une <ul class="diamond-list reveal">). Ne traiter
+         que les descendants laissait ce second cas sans cascade. */
+      if (el.tagName === 'UL' || el.tagName === 'OL') numeroter(el);
+      Array.prototype.forEach.call(el.querySelectorAll('ul, ol'), numeroter);
+    });
+  })();
+
+  /* ---------------------------------------------------------------------
+     2 ter. Jauge de lecture
+     Le filet doré sous l'en-tête mesure l'avancement dans la page. Injecté
+     ici plutôt qu'écrit dans les six pages : purement décoratif, il n'a
+     rien à faire dans le balisage.
+     --------------------------------------------------------------------- */
+  (function progression() {
+    var header = document.querySelector('.site-header');
+    if (!header || reduceMotion) return;
+
+    var barre = document.createElement('span');
+    barre.className = 'site-header__progress';
+    barre.setAttribute('aria-hidden', 'true');
+    header.appendChild(barre);
+
+    var ticking = false;
+
+    function update() {
+      var doc = document.documentElement;
+      var course = doc.scrollHeight - doc.clientHeight;
+      var part = course > 0 ? Math.min(1, Math.max(0, window.scrollY / course)) : 0;
+      barre.style.transform = 'scaleX(' + part.toFixed(4) + ')';
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', function () {
+      if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+    }, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
+    update();
+  })();
+
+  /* ---------------------------------------------------------------------
      3. Révélation au défilement (désactivée si mouvement réduit)
      --------------------------------------------------------------------- */
   (function reveal() {
